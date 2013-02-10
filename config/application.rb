@@ -31,7 +31,7 @@ module ActiveInvoices
 
     # The default locale is :en and all translations from config/locales/*.rb,yml are auto loaded.
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
-    # config.i18n.default_locale = :de
+    config.i18n.default_locale = :'en-GB'
 
     # JavaScript files you want as :defaults (application.js is always included).
     # config.action_view.javascript_expansions[:defaults] = %w(jquery rails)
@@ -65,15 +65,15 @@ module ActiveInvoices
 
     # Configure sensitive parameters which will be filtered from the log file.
     config.filter_parameters += [:password]
-    
+
     # Load configuration files, with smtp settings.
     def config.from_file(file)
       super
-      
+
       action_mailer.delivery_method = :smtp
       action_mailer.smtp_settings = smtp_settings.inject({}){|memo,(k,v)| memo[k.to_sym] = v; memo}
     end
-    
+
     config.from_file 'settings.yml'
   end
 end
