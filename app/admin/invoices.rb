@@ -1,68 +1,122 @@
+#coding: utf-8
 include ActionView::Helpers::NumberHelper
 
 def generate_invoice(invoice)
   # Generate invoice
   Prawn::Document.generate @invoice.invoice_location do |pdf|
     # Title
-    pdf.text "Invoice ##{invoice.code}", :size => 25
-
-    # Client info
-    pdf.text invoice.client.name
-    pdf.text invoice.client.address
-    pdf.text invoice.client.phone
-
-    pdf.draw_text "#{l(invoice.created_at, :format => :short)}", :at => [pdf.bounds.width / 2, pdf.bounds.height - 30]
-
-    # Our company info
-    pdf.float do
-      pdf.bounding_box [0, pdf.bounds.top - 5], :width => pdf.bounds.width do
-        pdf.text invoice.client.name, :size => 20, :align => :right
+    # text "Invoice ##{invoice.code}", :size => 25
+    pdf.font_size 10
+    pdf.bounding_box([350, 690], :width => 200, :height => 100) do
+      pdf.text invoice.client.organization.name, :style => :bold
+      pdf.move_down 1
+      [
+        invoice.client.organization.street_1,
+        invoice.client.organization.street_2,
+        invoice.client.organization.city,
+        invoice.client.organization.zip_code
+      ].each do |line|
+        pdf.text line
+        pdf.move_down 1
       end
     end
 
+
+    # Client info
+    pdf.bounding_box([0, 600], :width => 250, :height => 100) do
+      pdf.horizontal_rule
+      pdf.move_down 10
+      pdf.text invoice.client.name
+      invoice.client.address.split(',').each do |line|
+        pdf.text line
+      end
+      pdf.text invoice.client.phone
+    end
+
+
+    # Invoice number and due date
+    pdf.bounding_box([350, 600], :width => 200, :height => 100) do
+      pdf.horizontal_rule
+      pdf.move_down 10
+      pdf.text "INVOICE #{invoice.code.rjust(3, '0')}", :size => 14, :style => :bold
+      pdf.move_down 1
+      pdf.text l(invoice.created_at, :format => :pdf), :size => 12, :style => :bold
+      pdf.move_down 1
+      due = invoice.due_date.blank? ? "on receipt" : l(invoice.due_date, :format => :pdf)
+      pdf.text "Payment Terms: Due #{due}", :size => 10, :style => :bold, :color => "999999"
+
+    end
+
+    # Client info
     pdf.move_down 20
 
     # Items
-    header = ['Qty.', 'Description', 'Amount', 'Total']
+    invoice_services_data = []
+    invoice_services_data << ["Quantity", "Details", "Unit Price", "VAT", "Net Subtotal"]
+
     items = invoice.items.collect do |item|
-      [item.quantity.to_s, item.description, number_to_currency(item.amount), number_to_currency(item.total)]
+      invoice_services_data << [item.quantity.to_s, item.description, number_to_currency(item.amount), number_to_percentage(item.tax, :strip_insignificant_zeros => true), number_to_currency(item.total)]
     end
 
-    items = items + [["", "", "Discount:", "#{number_with_delimiter(invoice.discount)}%"]] \
-                  + [["", "", "Sub-total:", "#{number_to_currency(invoice.subtotal)}"]] \
-                  + [["", "", "Taxes:", "#{number_to_currency(invoice.taxes)} (#{number_with_delimiter(invoice.tax)}%)"]] \
-                  + [["", "", "Total:", "#{number_to_currency(invoice.total)}"]]
+    invoice_services_data << [" ", " ", " ", " ", " "]
 
-    pdf.table [header] + items, :header => true, :width => pdf.bounds.width do
-      row(-4..-1).borders = []
-      row(-4..-1).column(2).align = :right
-      row(0).style :font_style => :bold
-      row(-1).style :font_style => :bold
+    pdf.table(invoice_services_data, :width => pdf.bounds.width) do
+      style(row(1..-1).columns(0..-1), :padding => [4, 5, 4, 5], :borders => [:bottom], :border_color => 'dddddd')
+      style(row(1), :background_color => 'f4f4f4')
+      style(row(0), :background_color => '000000', :border_color => 'dddddd', :font_style => :bold, :text_color => 'ffffff')
+      style(row(0).columns(0..-1), :borders => [:top, :bottom])
+      style(row(0).columns(0), :borders => [:top, :left, :bottom])
+      style(row(0).columns(-1), :borders => [:top, :right, :bottom])
+      style(row(-1), :border_width => 2)
+      style(column(2..-1), :align => :right)
+      style(columns(0), :width => 75)
+      style(columns(1), :width => 275)
     end
 
-                     # :border_style => :grid,
-                     # :headers => header,
-                     # :width => pdf.bounds.width,
-                     # :row_colors => %w{cccccc eeeeee},
-                     # :align => { 0 => :right, 1 => :left, 2 => :right, 3 => :right, 4 => :right }
+    pdf.move_down 1
+
+    # Item totals
+    invoice_services_totals_data = [
+      ["Net Total", number_to_currency(invoice.subtotal)],
+      ["VAT", number_to_currency(invoice.taxes)],
+      ["GBP Total", number_to_currency(invoice.total)]
+    ]
+
+    pdf.table(invoice_services_totals_data, :position => :right, :width => pdf.bounds.width) do
+      style(row(0..2).columns(1), :width => 75 )
+      style(column(0..1), :align => :right, :border_color => 'dddddd', :borders => [:top])
+      style(row(2), :font_style => :bold)
+    end
+
+    # Bank details
+    pdf.bounding_box([0, 300], :width => 200, :height => 100) do
+      pdf.text "Payment details", :style => :bold
+      pdf.move_down 10
+      # Todo Make this configurable
+      ["Bank Name",
+      "Bank/Sort Code: 01-01-01",
+      "Account Number: 123456",
+      "Payment Reference: #{invoice.code}"].each do |line|
+        pdf.text line
+        pdf.move_down 1
+      end
+    end
 
 
     # Terms
-    if invoice.terms != ''
+    unless invoice.terms.blank?
       pdf.move_down 20
-      pdf.text 'Terms', :size => 18
+      pdf.text 'Terms'
       pdf.text invoice.terms
     end
 
     # Notes
-    if invoice.notes != ''
+    unless invoice.notes.blank?
       pdf.move_down 20
-      pdf.text 'Notes', :size => 18
+      pdf.text 'Notes'
       pdf.text invoice.notes
     end
 
-    # Footer
-    pdf.draw_text "Generated at #{l(Time.now, :format => :short)}", :at => [0, 0]
   end
 end
 
@@ -122,7 +176,7 @@ ActiveAdmin.register Invoice do
     generate_invoice(@invoice)
 
     # Send file to user
-    send_file @invoice.invoice_location
+    send_file @invoice.invoice_location, :type => "application/pdf"
   end
 
   # -----------------------------------------------------------------------------------
@@ -156,7 +210,7 @@ ActiveAdmin.register Invoice do
     @invoice.status = Invoice::STATUS_SENT
     @invoice.save
 
-    redirect_to admin_invoice_path(@invoice), :notice => "Invoice sent succesfully"
+    redirect_to admin_invoice_path(@invoice), :notice => "Invoice sent successfully"
   end
 
   # -----------------------------------------------------------------------------------
@@ -175,30 +229,31 @@ ActiveAdmin.register Invoice do
       table_for invoice.items do |t|
         t.column("Qty.") { |item| number_with_delimiter item.quantity }
         t.column("Description") { |item| item.description }
+        t.column("VAT") { |item| number_to_percentage(item.tax, :strip_insignificant_zeros => true) }
         t.column("Per Unit") { |item| number_to_currency item.amount }
         t.column("Total") { |item| number_to_currency item.total}
 
         # Show the tax, discount, subtotal and total
         tr do
-          2.times { td "" }
+          3.times { td "" }
           td "Discount:", :style => "text-align:right; font-weight: bold;"
           td "#{number_with_delimiter(invoice.discount)}%"
         end if invoice.discount > 0
 
         tr do
-          2.times { td "" }
+          3.times { td "" }
           td "Net Total:", :style => "text-align:right; font-weight: bold;"
           td "#{number_to_currency(invoice.subtotal)}"
         end
 
         tr do
-          2.times { td "" }
+          3.times { td "" }
           td "VAT :", :style => "text-align:right; font-weight: bold;"
-          td "#{number_to_currency(invoice.taxes)} (#{number_with_delimiter(invoice.tax)}%)"
+          td "#{number_to_currency(invoice.taxes)}"
         end
 
         tr do
-          2.times { td "" }
+          3.times { td "" }
           td "Total:", :style => "text-align:right; font-weight: bold;"
           td "#{number_to_currency(invoice.total)}", :style => "font-weight: bold;"
         end
@@ -240,6 +295,7 @@ ActiveAdmin.register Invoice do
         i.input :_destroy, :as => :boolean, :label => "Delete this item" unless i.object.id.nil?
         i.input :quantity
         i.input :description
+        i.input :tax, :input_html => { :style => "width: 30px"}, :hint => "This should be a percentage, from 0 to 100 (without the % sign)"
         i.input :amount
       end
     end
@@ -248,7 +304,6 @@ ActiveAdmin.register Invoice do
       f.input :code, :hint => "The invoice's code, should be incremental. Suggested code: #{Invoice.suggest_code}"
       f.input :status, :collection => Invoice.status_collection, :as => :radio
       f.input :due_date
-      f.input :tax, :input_html => { :style => "width: 30px"}, :hint => "This should be a percentage, from 0 to 100 (without the % sign)"
       f.input :discount, :input_html => { :style => "width: 30px"}, :hint => "This should be a percentage, from 0 to 100 (without the % sign)"
     end
 

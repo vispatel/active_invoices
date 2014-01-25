@@ -1,13 +1,13 @@
 ActiveAdmin.register Client do
   filter :name
   filter :email
-  
+
   index do
     column :name
     column :email do |client|
-      if client.email 
-        mail_to client.email, client.email 
-      else 
+      if client.email
+        mail_to client.email, client.email
+      else
         "-"
       end
     end
@@ -21,7 +21,7 @@ ActiveAdmin.register Client do
       link_to("Delete", admin_client_path(client), :method => :delete, :confirm => "Are you sure?")
     end
   end
-  
+
   show :title => :name do
     panel "Client Details" do
       attributes_table_for client do
@@ -35,6 +35,10 @@ ActiveAdmin.register Client do
 
   form do |f|
     f.inputs "Client" do
+      f.input :organization, :collection => current_admin_user.organizations
+    end
+
+    f.inputs "Client" do
       f.input :name
       f.input :email
       f.input :address
@@ -46,7 +50,7 @@ ActiveAdmin.register Client do
   sidebar "Total Billed", :only => :show do
     h1 number_to_currency(Invoice.where(:client_id => client.id).all.sum(&:total)), :style => "text-align: center; margin-top: 20px;"
   end
-  
+
   sidebar "Latest Invoices", :only => :show do
     table_for Invoice.where(:client_id => client.id).order('created_at desc').limit(5).all do |t|
       t.column("Status") { |invoice| status_tag invoice.status, invoice.status_tag }
