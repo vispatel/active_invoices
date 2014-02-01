@@ -4,7 +4,7 @@ class Invoice < ActiveRecord::Base
   STATUS_PAID  = 'paid'
 
   belongs_to :client
-  belongs_to :user
+  belongs_to :admin_user
 
   has_many :items, :dependent => :destroy
 
@@ -15,6 +15,8 @@ class Invoice < ActiveRecord::Base
   validates :discount, :numericality => { :greater_than_or_equal_to => 0, :less_than_or_equal_to => 100 }
 
   attr_accessible :client_id, :items_attributes, :code, :status, :due_date, :discount, :terms, :notes
+
+  after_initialize :set_defaults
 
   class << self
     def suggest_code
@@ -61,5 +63,18 @@ class Invoice < ActiveRecord::Base
 
   def invoice_location
     "#{Rails.root}/pdfs/invoice-#{self.code}.pdf"
+  end
+
+  private
+
+  def set_defaults
+    self[:discount] = 0 if discount.blank?
+    if due_date.blank?
+      self[:due_date] = I18n.l DateTime.now + 15.days
+    else
+      self[:due_date] = I18n.l due_date
+    end
+
+    self[:status] = STATUS_DRAFT if status.blank?
   end
 end
