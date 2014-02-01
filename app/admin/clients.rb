@@ -34,11 +34,11 @@ ActiveAdmin.register Client do
   end
 
   form do |f|
-    f.inputs "Client" do
+    f.inputs "Billed by" do
       f.input :organization, :collection => current_admin_user.organizations
     end
 
-    f.inputs "Client" do
+    f.inputs "Client to invoice" do
       f.input :name
       f.input :email
       f.input :address
