@@ -11,7 +11,9 @@ group :assets do
   gem 'uglifier', '>= 1.0.3'
 end
 
-gem 'sqlite3'
+group :development, :test do
+  gem 'sqlite3'
+end
 
 gem 'jquery-rails'
 gem 'activeadmin', :git => 'git://github.com/gregbell/active_admin.git'
