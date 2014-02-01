@@ -70,9 +70,9 @@ class Invoice < ActiveRecord::Base
   def set_defaults
     self[:discount] = 0 if discount.blank?
     if due_date.blank?
-      self[:due_date] = I18n.l DateTime.now + 15.days
+      self[:due_date] = I18n.l Date.today + 15.days
     else
-      self[:due_date] = I18n.l due_date
+      self[:due_date] = I18n.l due_date.to_date
     end
 
     self[:status] = STATUS_DRAFT if status.blank?

@@ -17,9 +17,15 @@ ActiveAdmin.register AdminUser do
   end
 
   form do |f|
-    f.inputs do
+
+    f.inputs "Account" do
       f.input :email
+      f.input :password, :type => :password
+      f.input :password_confirmation, :type => :password
       f.input :admin
+    end
+
+    f.inputs "Address" do
       f.input :company_name
       f.input :street_1
       f.input :street_2
@@ -29,8 +35,12 @@ ActiveAdmin.register AdminUser do
       f.input :zip_code
       f.input :phone
       f.input :fax
-      f.input :password, :type => :password
-      f.input :password_confirmation, :type => :password
+    end
+
+    f.inputs "Intervals API" do
+      f.input :intervals_person_id
+      f.input :intervals_token
+      f.input :intervals_secret
     end
 
     f.buttons

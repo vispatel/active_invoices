@@ -43,6 +43,7 @@ ActiveAdmin.register Client do
       f.input :email
       f.input :address
       f.input :phone
+      f.input :hourly_rate, hint: "Hourly Rate for this client"
     end
     f.buttons
   end

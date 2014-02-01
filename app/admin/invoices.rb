@@ -4,23 +4,24 @@ include ActionView::Helpers::NumberHelper
 def generate_invoice(invoice)
   # Generate invoice
   Prawn::Document.generate @invoice.invoice_location do |pdf|
+    organization = invoice.client.organization
     # Title
     # text "Invoice ##{invoice.code}", :size => 25
     pdf.font_size 10
     pdf.bounding_box([350, 690], :width => 200, :height => 100) do
-      pdf.text invoice.client.organization.name, :style => :bold
+      pdf.text organization.name, :style => :bold
       pdf.move_down 1
       [
-        invoice.client.organization.street_1,
-        invoice.client.organization.street_2,
-        invoice.client.organization.city,
-        invoice.client.organization.zip_code
+        organization.street_1,
+        organization.street_2,
+        organization.city,
+        organization.zip_code,
+        "VAT: #{organization.vat_number}"
       ].each do |line|
         pdf.text line
         pdf.move_down 1
       end
     end
-
 
     # Client info
     pdf.bounding_box([0, 600], :width => 250, :height => 100) do
@@ -33,18 +34,16 @@ def generate_invoice(invoice)
       pdf.text invoice.client.phone
     end
 
-
     # Invoice number and due date
     pdf.bounding_box([350, 600], :width => 200, :height => 100) do
       pdf.horizontal_rule
       pdf.move_down 10
-      pdf.text "INVOICE #{invoice.code.rjust(3, '0')}", :size => 14, :style => :bold
+      pdf.text "INVOICE #{invoice.code.to_s.rjust(3, '0')}", :size => 14, :style => :bold
       pdf.move_down 1
       pdf.text l(invoice.created_at, :format => :pdf), :size => 12, :style => :bold
       pdf.move_down 1
       due = invoice.due_date.blank? ? "on receipt" : l(invoice.due_date, :format => :pdf)
-      pdf.text "Payment Terms: Due #{due}", :size => 10, :style => :bold, :color => "999999"
-
+      pdf.text "Payment Due by #{due}", :size => 10, :style => :bold, :color => "999999"
     end
 
     # Client info
@@ -92,10 +91,9 @@ def generate_invoice(invoice)
     pdf.bounding_box([0, 300], :width => 200, :height => 100) do
       pdf.text "Payment details", :style => :bold
       pdf.move_down 10
-      # Todo Make this configurable
-      ["Bank Name",
-      "Bank/Sort Code: 01-01-01",
-      "Account Number: 123456",
+      [organization.bank_name,
+      "Bank/Sort Code: #{organization.sort_code}",
+      "Account Number: #{organization.account_number}",
       "Payment Reference: #{invoice.code}"].each do |line|
         pdf.text line
         pdf.move_down 1
@@ -119,6 +117,7 @@ def generate_invoice(invoice)
 
   end
 end
+
 
 ActiveAdmin.register Invoice do
   scope :all, :default => true
@@ -171,10 +170,33 @@ ActiveAdmin.register Invoice do
     link_to "Generate PDF", generate_pdf_admin_invoice_path(resource)
   end
 
+  action_item :only => :index do
+    link_to "Import Invoice from Intervals", import_invoice_admin_invoices_path
+  end
+
   member_action :generate_pdf do
     @invoice = Invoice.find(params[:id])
     generate_invoice(@invoice)
 
+    # Send file to user
+    send_file @invoice.invoice_location, :type => "application/pdf"
+  end
+
+  collection_action :import_invoice, :method => :get do
+    intervals = Intervals.new(current_admin_user)
+
+    @invoice = Invoice.new(code: Invoice.suggest_code)
+    # TODO Store rate and service provided (description) in db against a client
+    item = Item.new(quantity: intervals.days_to_bill, description: 'Web development', amount: 100)
+    @invoice.items << item
+
+    #TODO For now we're picking the first client, in the future the import_invoice option should be done
+    # given account.
+    @invoice.client = current_admin_user.clients.first
+
+    @invoice.admin_user = current_admin_user
+    @invoice.save!
+    generate_invoice(@invoice)
     # Send file to user
     send_file @invoice.invoice_location, :type => "application/pdf"
   end
@@ -287,7 +309,7 @@ ActiveAdmin.register Invoice do
 
   form do |f|
     f.inputs "Client" do
-      f.input :client, :collection => current_admin_user.clients
+      f.input :client, :collection => current_admin_user.clients, :include_blank => false
     end
 
     f.inputs "Items" do
@@ -295,16 +317,16 @@ ActiveAdmin.register Invoice do
         i.input :_destroy, :as => :boolean, :label => "Delete this item" unless i.object.id.nil?
         i.input :quantity
         i.input :description
-        i.input :tax, :input_html => { :style => "width: 30px"}, :hint => "This should be a percentage, from 0 to 100 (without the % sign)"
+        i.input :tax, :input_html => { :style => "width: 35px"}, :hint => "This should be a percentage, from 0 to 100 (without the % sign)"
         i.input :amount
       end
     end
 
     f.inputs "Options" do
-      f.input :code, :hint => "The invoice's code, should be incremental. Suggested code: #{Invoice.suggest_code}"
-      f.input :status, :collection => Invoice.status_collection, :as => :radio
-      f.input :due_date
-      f.input :discount, :input_html => { :style => "width: 30px"}, :hint => "This should be a percentage, from 0 to 100 (without the % sign)"
+      f.input :code, :hint => "The invoice's code, should be incremental."
+      f.input :status, :collection => Invoice.status_collection, :include_blank => false
+      f.input :due_date, :as => :datepicker
+      f.input :discount, :input_html => {:style => "width: 35px"}, :hint => "This should be a percentage, from 0 to 100 (without the % sign)"
     end
 
     f.inputs "Other Fields" do

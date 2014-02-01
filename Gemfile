@@ -20,6 +20,7 @@ gem 'prawn', "~> 1.0.0.rc2" # Generates PDF files
 gem 'choices' # Configuration files
 gem 'country_select'
 gem 'cancan'
+gem 'rest-client'
 
 # Use unicorn as the web server
 # gem 'unicorn'

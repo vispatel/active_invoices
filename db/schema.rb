@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130510161841) do
+ActiveRecord::Schema.define(:version => 20140201191820) do
 
   create_table "active_admin_comments", :force => true do |t|
     t.integer  "resource_id",   :null => false
@@ -27,6 +27,24 @@ ActiveRecord::Schema.define(:version => 20130510161841) do
   add_index "active_admin_comments", ["author_type", "author_id"], :name => "index_active_admin_comments_on_author_type_and_author_id"
   add_index "active_admin_comments", ["namespace"], :name => "index_active_admin_comments_on_namespace"
   add_index "active_admin_comments", ["resource_type", "resource_id"], :name => "index_admin_notes_on_resource_type_and_resource_id"
+
+  create_table "activeadmin_settings_pictures", :force => true do |t|
+    t.string   "data"
+    t.string   "data_file_size"
+    t.string   "data_content_type"
+    t.integer  "width"
+    t.integer  "height"
+    t.datetime "created_at",        :null => false
+    t.datetime "updated_at",        :null => false
+  end
+
+  create_table "activeadmin_settings_settings", :force => true do |t|
+    t.string   "name"
+    t.string   "string"
+    t.string   "file"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
+  end
 
   create_table "admin_users", :force => true do |t|
     t.string   "email",                  :default => "", :null => false
@@ -51,6 +69,10 @@ ActiveRecord::Schema.define(:version => 20130510161841) do
     t.string   "zip_code"
     t.string   "phone"
     t.string   "fax"
+    t.string   "intervals_password"
+    t.string   "intervals_token"
+    t.string   "intervals_secret"
+    t.string   "intervals_person_id"
   end
 
   add_index "admin_users", ["email"], :name => "index_admin_users_on_email", :unique => true
@@ -65,6 +87,7 @@ ActiveRecord::Schema.define(:version => 20130510161841) do
     t.datetime "updated_at",      :null => false
     t.integer  "organization_id"
     t.integer  "admin_user_id"
+    t.float    "hourly_rate"
   end
 
   create_table "invoices", :force => true do |t|
@@ -103,6 +126,10 @@ ActiveRecord::Schema.define(:version => 20130510161841) do
     t.datetime "created_at",     :null => false
     t.datetime "updated_at",     :null => false
     t.integer  "admin_user_id"
+    t.string   "bank_name"
+    t.string   "sort_code"
+    t.string   "account_number"
+    t.string   "vat_number"
   end
 
 end
