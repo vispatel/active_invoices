@@ -4,4 +4,4 @@
 # If you change this key, all old signed cookies will become invalid!
 # Make sure the secret is at least 30 characters and all random,
 # no regular words or you'll be exposed to dictionary attacks.
-ActiveInvoices::Application.config.secret_token = 'b339dedeec222d1c123ac32331ea9fd6282f02f9766b458223a9964cc0e8de8f860fd7e3814bc4c015e7e0628800eb3ebfb0d5ec805243c88e21ccc48fbaacbf'
+ActiveInvoices::Application.config.secret_token = ENV['SECRET_TOKEN'] || '6d8cbf47ee9e30e90c5c5216ad0310349e95effc057a6459a627bad0e6397b874b8bb4689435dae18f9b045c7fee3d028822381513dae6f20d588d0069dc94e1'

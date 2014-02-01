@@ -1,7 +1,7 @@
 defaults: &defaults
   # The email's sender address.
   sender: from@example.org
-  
+
   # Outgoing email configuration
   # Taken from Teambox's config file
   smtp_settings:
@@ -25,4 +25,7 @@ development:
   <<: *defaults
 
 test: &testing
+  <<: *defaults
+
+production:
   <<: *defaults
