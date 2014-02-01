@@ -65,14 +65,14 @@ module ActiveInvoices
     config.filter_parameters += [:password]
 
     # Load configuration files, with smtp settings.
-    # def config.from_file(file)
-    #   super
+    def config.from_file(file)
+      super
 
-    #   action_mailer.delivery_method = :smtp
-    #   action_mailer.smtp_settings = smtp_settings.inject({}){|memo,(k,v)| memo[k.to_sym] = v; memo}
-    # end
+      action_mailer.delivery_method = :smtp
+      action_mailer.smtp_settings = smtp_settings.inject({}){|memo,(k,v)| memo[k.to_sym] = v; memo}
+    end
 
-    # config.from_file 'settings.yml'
+    config.from_file 'settings.yml'
     config.assets.initialize_on_precompile = false
   end
 end
