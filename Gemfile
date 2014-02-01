@@ -16,7 +16,8 @@ group :development, :test do
 end
 
 gem 'jquery-rails'
-gem 'activeadmin', :git => 'git://github.com/gregbell/active_admin.git'
+gem 'activeadmin', '~> 0.5.0'
+gem 'devise', '~> 1.5.4'
 gem 'meta_search', '>= 1.1.0.pre'
 gem 'prawn', "~> 1.0.0.rc2" # Generates PDF files
 gem 'choices' # Configuration files
