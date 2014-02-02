@@ -4,5 +4,4 @@ log/*.log
 tmp/
 .DS_Store
 config/settings.local.yml
-pdfs/*
 .ruby-version
