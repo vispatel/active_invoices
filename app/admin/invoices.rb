@@ -1,134 +1,4 @@
 #coding: utf-8
-include ActionView::Helpers::NumberHelper
-
-def generate_invoice(invoice)
-  # Generate invoice
-  Prawn::Document.generate @invoice.invoice_location do |pdf|
-    organization = invoice.client.organization
-    # Title
-    # text "Invoice ##{invoice.code}", :size => 25
-    pdf.font_size 10
-    pdf.bounding_box([350, 690], :width => 200, :height => 100) do
-      pdf.text organization.name, :style => :bold
-      pdf.move_down 1
-      [
-        organization.street_1,
-        organization.street_2,
-        organization.city,
-        organization.zip_code
-      ].each do |line|
-        pdf.text line
-        pdf.move_down 1
-      end
-    end
-
-    # Client info
-    pdf.bounding_box([0, 600], :width => 250, :height => 100) do
-      pdf.horizontal_rule
-      pdf.move_down 10
-      pdf.text invoice.client.name
-      invoice.client.address.split(',').each do |line|
-        pdf.text line
-      end
-      pdf.text invoice.client.phone
-    end
-
-    # Invoice number and due date
-    pdf.bounding_box([350, 600], :width => 200, :height => 100) do
-      pdf.horizontal_rule
-      pdf.move_down 10
-      pdf.text "INVOICE #{invoice.code.to_s.rjust(3, '0')}", :size => 14, :style => :bold
-      pdf.move_down 1
-      pdf.text l(invoice.created_at, :format => :pdf), :size => 12, :style => :bold
-      pdf.move_down 1
-      due = invoice.due_date.blank? ? "on receipt" : l(invoice.due_date, :format => :pdf)
-      pdf.text "Payment Due by #{due}", :size => 10, :style => :bold, :color => "999999"
-    end
-
-    # Client info
-    pdf.move_down 20
-
-    # Items
-    invoice_services_data = []
-    invoice_services_data << ["Quantity", "Details", "Unit Price", "VAT", "Net Subtotal"]
-
-    items = invoice.items.collect do |item|
-      invoice_services_data << [item.quantity.to_s + " Days", item.description, number_to_currency(item.amount), number_to_percentage(item.tax, :strip_insignificant_zeros => true), number_to_currency(item.total)]
-    end
-
-    invoice_services_data << [" ", " ", " ", " ", " "]
-
-    pdf.table(invoice_services_data, :width => pdf.bounds.width) do
-      style(row(1..-1).columns(0..-1), :padding => [4, 5, 4, 5], :borders => [:bottom], :border_color => 'dddddd')
-      style(row(1), :background_color => 'f4f4f4')
-      style(row(0), :background_color => '000000', :border_color => 'dddddd', :font_style => :bold, :text_color => 'ffffff')
-      style(row(0).columns(0..-1), :borders => [:top, :bottom])
-      style(row(0).columns(0), :borders => [:top, :left, :bottom])
-      style(row(0).columns(-1), :borders => [:top, :right, :bottom])
-      style(row(-1), :border_width => 2)
-      style(column(2..-1), :align => :right)
-      style(columns(0), :width => 75)
-      style(columns(1), :width => 275)
-    end
-
-    pdf.move_down 1
-
-    # Item totals
-    invoice_services_totals_data = [
-      ["Net Total", number_to_currency(invoice.subtotal)],
-      ["VAT", number_to_currency(invoice.taxes)],
-      ["GBP Total", number_to_currency(invoice.total)]
-    ]
-
-    pdf.table(invoice_services_totals_data, :position => :right, :width => pdf.bounds.width) do
-      style(row(0..2).columns(1), :width => 75 )
-      style(column(0..1), :align => :right, :border_color => 'dddddd', :borders => [:top])
-      style(row(2), :font_style => :bold, :size => 12)
-    end
-
-    # Bank details
-    pdf.bounding_box([0, 300], :width => 200, :height => 100) do
-      pdf.text "Payment details", :style => :bold, :size => 11
-      pdf.move_down 10
-      [organization.bank_name,
-      "Bank/Sort Code: #{organization.sort_code}",
-      "Account Number: #{organization.account_number}",
-      "Payment Reference: #{invoice.code}"].each do |line|
-        pdf.text line
-        pdf.move_down 1
-      end
-    end
-
-    # Company details
-    pdf.bounding_box([350, 300], :width => 200, :height => 100) do
-      pdf.text "Other Information", :style => :bold, :size => 11
-      pdf.move_down 10
-      pdf.text  "VAT Number: #{organization.vat_number}"
-      pdf.text  "Company Registration Number: #{organization.company_registration_number}"
-      pdf.move_down 1
-    end
-
-
-    pdf.move_down 1
-    pdf.text "Invoice for #{(Date.today - 1.month).strftime('%B %Y')}", style: :bold, color: "999999"
-
-    # Terms
-    unless invoice.terms.blank?
-      pdf.move_down 20
-      pdf.text 'Terms'
-      pdf.text invoice.terms
-    end
-
-    # Notes
-    unless invoice.notes.blank?
-      pdf.move_down 20
-      pdf.text 'Notes'
-      pdf.text invoice.notes
-    end
-
-  end
-end
-
 
 ActiveAdmin.register Invoice do
   scope :all, :default => true
@@ -187,10 +57,11 @@ ActiveAdmin.register Invoice do
 
   member_action :generate_pdf do
     @invoice = Invoice.find(params[:id])
-    generate_invoice(@invoice)
+    pdf = InvoicePdf.new(@invoice)
 
     # Send file to user
-    send_file @invoice.invoice_location, :type => "application/pdf"
+    send_data pdf.render, filename: "invoice_#{@invoice.code}.pdf",
+                          type: "application/pdf"
   end
 
   collection_action :import_invoice, :method => :get do
@@ -207,9 +78,10 @@ ActiveAdmin.register Invoice do
     @invoice.admin_user = current_admin_user
 
     @invoice.save!
-    generate_invoice(@invoice)
+    pdf = InvoicePdf.new(@invoice)
     # Send file to user
-    send_file @invoice.invoice_location, :type => "application/pdf"
+    send_data pdf.render, filename: "invoice_#{@invoice.code}.pdf",
+                          type: "application/pdf"
   end
 
   # -----------------------------------------------------------------------------------
@@ -229,7 +101,7 @@ ActiveAdmin.register Invoice do
     @invoice = Invoice.find(params[:id])
 
     # Generate the PDF invoice if neccesary
-    generate_invoice(@invoice) if params[:attach_pdf]
+    InvoicePdf.new(@invoice) if params[:attach_pdf]
 
     # Attach our own email if we want to send a copy to ourselves.
     params[:recipients] += ", #{current_admin_user.email}" if params[:send_copy]
