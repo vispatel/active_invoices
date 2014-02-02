@@ -72,13 +72,13 @@ ActiveAdmin.register Invoice do
     client = current_admin_user.clients.first
 
     @invoice = Invoice.new(code: Invoice.suggest_code)
-
+    @invoice.intervals_data = intervals.time
     @invoice.items << Item.new(quantity: intervals.days_to_bill, description: client.service_description, amount: client.hourly_rate * 8)
     @invoice.client = client
     @invoice.admin_user = current_admin_user
 
     @invoice.save!
-    pdf = InvoicePdf.new(@invoice, intervals.time)
+    pdf = InvoicePdf.new(@invoice)
     # Send file to user
     send_data pdf.render, filename: "invoice_#{@invoice.code}.pdf",
                           type: "application/pdf"

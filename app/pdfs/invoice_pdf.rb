@@ -1,16 +1,16 @@
 class InvoicePdf < Prawn::Document
   include ActionView::Helpers::NumberHelper
 
-  def initialize(invoice, time = [])
+  def initialize(invoice)
     super()
     @invoice = invoice
     invoice_content
-    return unless time.any?
-    start_new_page
-    add_time(time)
+    timesheet
   end
 
-  def add_time(time)
+  def timesheet
+    return unless @invoice.intervals_data
+    start_new_page
     move_down 20
     text "Timesheet for #{@invoice.client.organization.name}", :size => 14, :style => :bold
     move_down 20
@@ -18,7 +18,7 @@ class InvoicePdf < Prawn::Document
     timesheet_data << ["Date", "Project", "Task Description", "Hours"]
 
     total_hours = 0
-    time.each do |item|
+    @invoice.intervals_data.each do |item|
       total_hours += item[:hours]
       timesheet_data << [item[:date].strftime('%d %b %y'), item[:project], item[:description], "#{item[:hours]}:00"]
     end

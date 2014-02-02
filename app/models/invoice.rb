@@ -17,7 +17,7 @@ class Invoice < ActiveRecord::Base
   attr_accessible :client_id, :items_attributes, :code, :status, :due_date, :discount, :terms, :notes
 
   after_initialize :set_defaults
-
+  serialize :intervals_data
   class << self
     def suggest_code
       invoice = order('created_at desc').limit(1).first
