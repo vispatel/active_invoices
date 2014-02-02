@@ -19,6 +19,7 @@ ActiveAdmin.register Organization do
       f.input :business_phone
       f.input :fax
       f.input :vat_number
+      f.input :company_registration_number
     end
     f.inputs "Bank details" do
       f.input :bank_name

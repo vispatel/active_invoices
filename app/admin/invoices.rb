@@ -15,8 +15,7 @@ def generate_invoice(invoice)
         organization.street_1,
         organization.street_2,
         organization.city,
-        organization.zip_code,
-        "VAT: #{organization.vat_number}"
+        organization.zip_code
       ].each do |line|
         pdf.text line
         pdf.move_down 1
@@ -84,12 +83,12 @@ def generate_invoice(invoice)
     pdf.table(invoice_services_totals_data, :position => :right, :width => pdf.bounds.width) do
       style(row(0..2).columns(1), :width => 75 )
       style(column(0..1), :align => :right, :border_color => 'dddddd', :borders => [:top])
-      style(row(2), :font_style => :bold)
+      style(row(2), :font_style => :bold, :size => 12)
     end
 
     # Bank details
     pdf.bounding_box([0, 300], :width => 200, :height => 100) do
-      pdf.text "Payment details", :style => :bold
+      pdf.text "Payment details", :style => :bold, :size => 11
       pdf.move_down 10
       [organization.bank_name,
       "Bank/Sort Code: #{organization.sort_code}",
@@ -100,6 +99,18 @@ def generate_invoice(invoice)
       end
     end
 
+    # Company details
+    pdf.bounding_box([350, 300], :width => 200, :height => 100) do
+      pdf.text "Other Information", :style => :bold, :size => 11
+      pdf.move_down 10
+      pdf.text  "VAT Number: #{organization.vat_number}"
+      pdf.text  "Company Registration Number: #{organization.company_registration_number}"
+      pdf.move_down 1
+    end
+
+
+    pdf.move_down 1
+    pdf.text "Invoice for #{(Date.today - 1.month).strftime('%B %Y')}", style: :bold, color: "999999"
 
     # Terms
     unless invoice.terms.blank?
