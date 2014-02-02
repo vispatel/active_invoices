@@ -78,7 +78,7 @@ ActiveAdmin.register Invoice do
     @invoice.admin_user = current_admin_user
 
     @invoice.save!
-    pdf = InvoicePdf.new(@invoice)
+    pdf = InvoicePdf.new(@invoice, intervals.time)
     # Send file to user
     send_data pdf.render, filename: "invoice_#{@invoice.code}.pdf",
                           type: "application/pdf"

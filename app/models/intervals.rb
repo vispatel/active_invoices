@@ -4,6 +4,7 @@ class Intervals
     @person_id = admin_user.intervals_person_id
     @token = admin_user.intervals_token
     @password = admin_user.intervals_secret
+    @data = nil
   end
 
   def url
@@ -11,13 +12,24 @@ class Intervals
   end
 
   def retrieve_data
-    data = RestClient.get "#{url}time?personid=#{@person_id}&limit=50&datebegin=#{last_month.first}&dateend=#{last_month.last}"
-    time = JSON.parse(data)
+    @data ||= RestClient.get "#{url}time?personid=#{@person_id}&limit=50&datebegin=#{last_month.first}&dateend=#{last_month.last}"
+    time = JSON.parse(@data)
   end
 
   def days_to_bill
     hours = retrieve_data['time'].map{|k,v| k['time'].to_i}
     (hours.sum / 8)
+  end
+
+  def time
+    retrieve_data['time'].map do |k,v|
+      {
+        date: Date.strptime(k['date'], '%m/%d/%Y'),
+        project: k['project'],
+        description: k['description'],
+        hours: k['time'].to_i
+      }
+    end.sort_by { |k| k[:date] }
   end
 
   def last_month
