@@ -11,8 +11,9 @@ class InvoicePdf < Prawn::Document
   end
 
   def add_time(time)
+    move_down 20
     text "Timesheet for #{@invoice.client.organization.name}", :size => 14, :style => :bold
-    move_down 10
+    move_down 20
     timesheet_data = []
     timesheet_data << ["Date", "Project", "Task Description", "Hours"]
 
