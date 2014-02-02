@@ -25,6 +25,7 @@ gem 'country_select'
 gem 'cancan'
 gem 'rest-client'
 
+gem 'newrelic_rpm'
 group :production do
   gem 'pg'
 end
