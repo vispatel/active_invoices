@@ -54,7 +54,7 @@ def generate_invoice(invoice)
     invoice_services_data << ["Quantity", "Details", "Unit Price", "VAT", "Net Subtotal"]
 
     items = invoice.items.collect do |item|
-      invoice_services_data << [item.quantity.to_s, item.description, number_to_currency(item.amount), number_to_percentage(item.tax, :strip_insignificant_zeros => true), number_to_currency(item.total)]
+      invoice_services_data << [item.quantity.to_s + " Days", item.description, number_to_currency(item.amount), number_to_percentage(item.tax, :strip_insignificant_zeros => true), number_to_currency(item.total)]
     end
 
     invoice_services_data << [" ", " ", " ", " ", " "]
@@ -185,16 +185,16 @@ ActiveAdmin.register Invoice do
   collection_action :import_invoice, :method => :get do
     intervals = Intervals.new(current_admin_user)
 
-    @invoice = Invoice.new(code: Invoice.suggest_code)
-    # TODO Store rate and service provided (description) in db against a client
-    item = Item.new(quantity: intervals.days_to_bill, description: 'Web development', amount: 100)
-    @invoice.items << item
-
     #TODO For now we're picking the first client, in the future the import_invoice option should be done
     # given account.
-    @invoice.client = current_admin_user.clients.first
+    client = current_admin_user.clients.first
 
+    @invoice = Invoice.new(code: Invoice.suggest_code)
+
+    @invoice.items << Item.new(quantity: intervals.days_to_bill, description: client.service_description, amount: client.hourly_rate * 8)
+    @invoice.client = client
     @invoice.admin_user = current_admin_user
+
     @invoice.save!
     generate_invoice(@invoice)
     # Send file to user
