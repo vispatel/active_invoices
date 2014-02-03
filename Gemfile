@@ -1,7 +1,7 @@
 source 'http://rubygems.org'
 ruby "2.1.0"
 
-gem 'rails', '3.2.8'
+gem 'rails', '3.2.16'
 
 # Bundle edge Rails instead:
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
@@ -16,7 +16,7 @@ group :development, :test do
   gem 'sqlite3'
 end
 
-gem 'jquery-rails'
+gem 'jquery-rails', '~> 2.3.0'
 gem 'activeadmin', '~> 0.5.0'
 gem 'devise', '~> 1.5.4'
 gem 'meta_search', '>= 1.1.0.pre'
